@@ -38,7 +38,7 @@
 #  ignore_errors: yes
   delegate_to: localhost
   become: false
-  become_user: njl
+  become_user: "{{ local_ssh_user }}"
 
 - name: "Staged Update"
   debug:
@@ -47,7 +47,7 @@
 
 - block:
   - set_fact:
-      update_data: "{{ wg_server_ip_keys.value | combine( { client_ip:  wireguard_client_public_key } ) }}"
+      update_data: "{{ wg_server_ip_keys.value | combine( { wireguard_client_ip:  wireguard_client_public_key } ) }}"
 
   - name: "Dancing Bear"
     debug:
@@ -64,5 +64,5 @@
     register: wg_client_ip_keys_add
     delegate_to: localhost
     become: false
-    become_user: njl
-  when: client_ip not in wg_server_ip_keys.value or (force_update is defined and force_update)
+    become_user: "{{ local_ssh_user }}"
+  when: wireguard_client_ip not in wg_server_ip_keys.value or (force_update is defined and force_update)

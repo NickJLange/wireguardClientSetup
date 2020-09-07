@@ -2,8 +2,13 @@
 Address = {{ wireguard_client_ip }}
 ListenPort = {{ wireguard_client_listen_port }}
 PrivateKey = {{ wireguard_client_private_key }}
+{% if 'japan' in group_names %}
+PostUp = iptables -A FORWARD -i %i -j ACCEPT; iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+PostDown = iptables -D FORWARD -i %i -j ACCEPT; iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
+{% endif %}
 
 [Peer]
 PublicKey = {{ wireguard_server_public_key }}
-AllowedIPs = {{ wireguard_client_allowed_ip_range }}
+AllowedIPs = {{ wireguard_client_allowed_ip_range }}, {{wireguard_server_listen_ip}}
 Endpoint = {{ wireguard_client_server_endpoint }}
+PersistentKeepalive = 29

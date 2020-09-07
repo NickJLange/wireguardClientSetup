@@ -13,7 +13,7 @@
   ignore_errors: yes
   delegate_to: localhost
   become: false
-  become_user: njl
+  become_user: "{{ local_ssh_user }}"
 
 - name: "Dancing Bear"
   debug:
@@ -24,21 +24,6 @@
   debug:
     msg: "{{ wg_client_ip_keys.rc }}"
 
-
-- command: "wg --help"
-  register: wg_subcommands
-  changed_when: false
-
-- set_fact:
-    wg_syncconf: false
-
-- set_fact:
-    wg_syncconf: true
-  when: wg_subcommands.stdout | regex_search('syncconf:')
-
-- name: Show syncconf subcommand status
-  debug:
-    var: wg_syncconf
 
 - name: Generate Private/Public Keys for host (and store in vault)
   block:
@@ -85,7 +70,7 @@
       register: wg_client_ip_keys_add
       delegate_to: localhost
       become: false
-      become_user: njl
+      become_user: "{{ local_ssh_user }}"
 #      ignore_errors: yes
 
 

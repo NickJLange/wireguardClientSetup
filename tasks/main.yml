@@ -1,5 +1,20 @@
 ---
 
+- command: "wg --help"
+  register: wg_subcommands
+  changed_when: false
+
+- set_fact:
+    wg_syncconf: false
+
+- set_fact:
+    wg_syncconf: true
+  when: wg_subcommands.stdout | regex_search('syncconf:')
+
+- name: Show syncconf subcommand status
+  debug:
+    var: wg_syncconf
+
 - import_tasks: install.yml
   when: provision_wg_client or provision_wg_server
   tags: [wireguard_install_binary]
@@ -13,6 +28,7 @@
   tags: [wireguard_configure_client]
 
 - import_tasks: add_wg_client.yml
+  throttle: 1
   when: add_wg_client
   tags: [wireguard_add_cient]
 
@@ -22,7 +38,7 @@
   tags: [wireguard_generate_client_keys]
 
 - import_tasks: configure_server_interface.yml
-  when: provision_wg_server
+  when: provision_wg_server or refresh_wg_server
   tags: [wireguard_configure_server]
 
 

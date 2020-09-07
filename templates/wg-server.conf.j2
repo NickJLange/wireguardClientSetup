@@ -5,9 +5,14 @@ PrivateKey = {{ wireguard_server_private_key }}
 
 
 {% for ip, pubkey in wireguard_server_clients.items() %}
-{% if not ip == "PrivateKey" %}
+{% if 'Key' not in ip %}
 [Peer]
 PublicKey = {{ pubkey }}
-AllowedIPs = {{ ip }}
+AllowedIPs = {{ ip }}{% if ip in wireguard_ip_map %}, {{wireguard_ip_map[ip]}}
+
+{% else %}
+
+{% endif %}
+PersistentKeepalive = 29
 {% endif %}
 {% endfor %}

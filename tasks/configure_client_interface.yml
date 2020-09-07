@@ -11,7 +11,7 @@
   #ignore_errors: yes
   delegate_to: localhost
   become: false
-  become_user: njl
+  become_user: "{{ local_ssh_user }}"
 
 - set_fact:
     vault_key: "{{ wireguard_client_server_endpoint.split(':')[0]}}"
@@ -26,7 +26,7 @@
 #  ignore_errors: yes
   delegate_to: localhost
   become: false
-  become_user: njl
+  become_user: "{{ local_ssh_user }}"
 
 - name: "Dancing Bear"
   debug:
@@ -45,6 +45,7 @@
 
 - name: "Configure Interface (default to {{ wireguard_interface }})"
   block:
+
 
     ### FIXME: Needs cleanup
     - name: Generate WireGuard configuration file

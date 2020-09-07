@@ -29,6 +29,11 @@
   stat:
     path: "{{ wireguard_binary }}"
   register: wg_bin
+
+- sysctl:
+    name: net.ipv4.ip_forward
+    value: 1
+    state: present
 - name: Install Wireguard Binary
   block:
     - name: Add testing branch so we can get wireguard installer
