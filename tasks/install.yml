@@ -6,6 +6,7 @@
       - python-pip
       - python-setuptools
       - python3-setuptools
+      - python3
     state: present
     force_apt_get: yes
     cache_valid_time: 84600
@@ -16,24 +17,27 @@
   pip:
       name:
         - hvac
-      executable: /usr/bin/pip3
+      executable: pip3
   become: yes
 
-- name: Install PreRequisites
-  pip:
-      name:
-        - hvac
-      executable: /usr/bin/pip
-  become: yes
 - name: Check if wireguard is installed
   stat:
     path: "{{ wireguard_binary }}"
   register: wg_bin
-
 - sysctl:
     name: net.ipv4.ip_forward
     value: 1
     state: present
+- sysctl:
+    name: net.core.default_qdisc
+    value: fq
+    state: present
+- sysctl:
+    name: net.ipv4.tcp_congestion_control
+    value: bbr
+    state: present
+
+
 - name: Install Wireguard Binary
   block:
     - name: Add testing branch so we can get wireguard installer

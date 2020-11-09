@@ -6,6 +6,9 @@ PrivateKey = {{ wireguard_client_private_key }}
 PostUp = iptables -A FORWARD -i %i -j ACCEPT; iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
 PostDown = iptables -D FORWARD -i %i -j ACCEPT; iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
 {% endif %}
+{% if 'newyork' in group_names %}
+DNS = {{ wireguard_client_dns }}
+{% endif %}
 
 [Peer]
 PublicKey = {{ wireguard_server_public_key }}

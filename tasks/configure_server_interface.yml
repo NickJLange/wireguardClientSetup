@@ -9,7 +9,7 @@
         mount_point: 'kv/wireguard-server'
         version: 2
       register: wgrawsecret
-      delegate_to: localhost
+      delegate_to: localhostw
       become: false
       become_user: "{{ local_ssh_user }}"
 
