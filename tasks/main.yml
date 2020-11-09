@@ -1,5 +1,10 @@
 ---
 
+
+- import_tasks: install.yml
+  when: provision_wg_client or provision_wg_server
+  tags: [wireguard_install_binary]
+
 - command: "wg --help"
   register: wg_subcommands
   changed_when: false
@@ -14,10 +19,6 @@
 - name: Show syncconf subcommand status
   debug:
     var: wg_syncconf
-
-- import_tasks: install.yml
-  when: provision_wg_client or provision_wg_server
-  tags: [wireguard_install_binary]
 
 - import_tasks: generate_keys.yml
   when: provision_wg_client
