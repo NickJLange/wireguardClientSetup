@@ -2,7 +2,12 @@
 Address = {{ wireguard_server_listen_ip }}
 ListenPort = {{ wireguard_server_listen_port }}
 PrivateKey = {{ wireguard_server_private_key }}
-
+PostUp = ip rule add table 200 from 192.168.100.106
+PostUp = ip route add table 200 default via 192.168.100.1
+PostUp = iptables -t nat -I POSTROUTING -o eth0 -j MASQUERADE
+PreDown = iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
+PreDown = ip rule delete table 200 from 192.168.100.106
+PreDown = ip route delete table 200 default via 192.168.100.1
 
 {% for ip, pubkey in wireguard_server_clients.items() %}
 {% if 'Key' not in ip %}

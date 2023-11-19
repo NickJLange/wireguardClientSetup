@@ -20,6 +20,8 @@
   debug:
     var: wg_syncconf
 
+
+
 - import_tasks: generate_keys.yml
   when: provision_wg_client
   tags: [wireguard_generate_client_keys]
@@ -34,9 +36,9 @@
   tags: [wireguard_add_cient]
 
 
-- import_tasks: generate_keys.yml
-  when: provision_wg_server
-  tags: [wireguard_generate_client_keys]
+#- import_tasks: generate_keys.yml
+#  when: provision_wg_server
+#  tags: [wireguard_generate_client_keys]
 
 - import_tasks: configure_server_interface.yml
   when: provision_wg_server or refresh_wg_server

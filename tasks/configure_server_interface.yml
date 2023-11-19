@@ -2,14 +2,14 @@
 - name: "Configure Interface (default to {{ wireguard_interface }})"
   block:
     - set_fact:
-        vault_key: "{{ wireguard_server_endpoint.split(':')[0]}}"
+        vault_key: "{{ wireguard_client_server_endpoint.split(':')[0]}}"
     - name: Fetch Wireguard Client Pub Keys
       hashivault_read:
         secret: "{{ vault_key }}"
         mount_point: 'kv/wireguard-server'
         version: 2
       register: wgrawsecret
-      delegate_to: localhostw
+      delegate_to: localhost
       become: false
       become_user: "{{ local_ssh_user }}"
 
@@ -54,6 +54,6 @@
       service:
         name: "wg-quick@{{ wireguard_interface }}"
         state: started
-        enabled: yes
+#        enabled: yes
 
   tags: wireguard_configure_server
