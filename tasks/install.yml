@@ -3,22 +3,14 @@
   apt:
     name:
       - python3-pip
-      - python-pip
-      - python-setuptools
       - python3-setuptools
       - python3
+      - python3-hvac
     state: present
     force_apt_get: yes
     cache_valid_time: 84600
   become: yes
   become_user: root
-
-- name: Install PreRequisites
-  pip:
-      name:
-        - hvac
-      executable: pip3
-  become: yes
 
 - name: Check if wireguard is installed
   stat:
@@ -40,28 +32,24 @@
 
 - name: Install Wireguard Binary
   block:
-    - name: Add testing branch so we can get wireguard installer
-      apt_repository:
-        repo: deb http://raspbian.raspberrypi.org/raspbian/ testing main contrib non-free rpi
-        state: present
-        update_cache: yes
+#    - name: Add testing branch so we can get wireguard installer
+#      apt_repository:
+#        repo: deb http://raspbian.raspberrypi.org/raspbian/ testing main contrib non-free rpi
+#        state: present
+#        update_cache: yes
     - name: Install requisite packages (likely present)
       apt:
         name:
-          - dkms
-          - raspberrypi-kernel-headers
-          - wireguard-dkms
-          - wireguard-tools
           - wireguard
         state: present
         force_apt_get: yes
         cache_valid_time: 84600
       register: wireguard_packages_present
-    - name: Remove testing branch so we don't get accidental surpises
-      apt_repository:
-        repo: deb http://raspbian.raspberrypi.org/raspbian/ testing main contrib non-free rpi
-        state: absent
-        update_cache: yes
+#    - name: Remove testing branch so we don't get accidental surpises
+#      apt_repository:
+#        repo: deb http://raspbian.raspberrypi.org/raspbian/ testing main contrib non-free rpi
+#        state: absent
+#        update_cache: yes
     - name: Check if wireguard directory exists
       stat:
         path: "{{ wireguard_remote_directory }}"

@@ -7,8 +7,10 @@
 
 - set_fact:
     client_ip: "{{ wireguard_client_ip.split('/')[0]}}"
-
+    ansible_python_interpreter: "{{ '/usr/bin/env python3' }}"
 - name: "Check if there is an existing Private/Public Key for Endpoint"
+  vars:
+   ansible_python_interpreter: "{{ '/usr/bin/env python3' }}"
   hashivault_read:
     mount_point: '/kv/wireguard-client'
     secret: "{{ client_ip }}"
