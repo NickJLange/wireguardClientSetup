@@ -4,8 +4,8 @@
 
 - name: "Check if there is an existing Private/Public Key for Endpoint"
   hashivault_read:
-    mount_point: '/kv/wireguard-client'
-    secret: "{{ vault_key }}"
+    mount_point: "/kv/wireguard-client"
+    secret: "{{ vault_wireguard_key }}"
     version: 2
   register: wg_client_ip_keys
   #ignore_errors: yes
@@ -19,11 +19,11 @@
 
 - name: "Check for Public Key of Dest  Server"
   hashivault_read:
-    mount_point: '/kv/wireguard-server'
+    mount_point: "/kv/wireguard-server"
     secret: "{{ vault_key }}"
     version: 2
   register: wg_server_ip_keys
-#  ignore_errors: yes
+  #  ignore_errors: yes
   delegate_to: localhost
   become: false
   become_user: "{{ local_ssh_user }}"
@@ -40,13 +40,8 @@
 - set_fact:
     wireguard_server_public_key: "{{ wg_server_ip_keys.value.PublicKey }}"
 
-
-
-
 - name: "Configure Interface (default to {{ wireguard_interface }})"
   block:
-
-
     ### FIXME: Needs cleanup
     - name: Generate WireGuard configuration file
       template:
@@ -57,7 +52,6 @@
         mode: 0600
       notify:
         - reconfigure wireguard
-
 
     - name: Check if reload-module-on-update is set
       stat:
@@ -78,6 +72,6 @@
       service:
         name: "wg-quick@{{ wireguard_client_interface }}"
         state: started
-        enabled: yes  
+        enabled: yes
 
   tags: wireguard_configure_client
