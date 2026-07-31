@@ -20,14 +20,31 @@
     name: net.ipv4.ip_forward
     value: 1
     state: present
+    sysctl_file: /etc/sysctl.d/99-mkrasberry.conf
 - sysctl:
     name: net.core.default_qdisc
     value: fq
     state: present
+    sysctl_file: /etc/sysctl.d/99-mkrasberry.conf
 - sysctl:
     name: net.ipv4.tcp_congestion_control
     value: bbr
     state: present
+    sysctl_file: /etc/sysctl.d/99-mkrasberry.conf
+
+- name: Disable reverse-path filtering for WireGuard routing interfaces
+  sysctl:
+    name: "net.ipv4.conf.{{ item }}.rp_filter"
+    value: 0
+    state: present
+    sysctl_file: /etc/sysctl.d/99-mkrasberry.conf
+  loop:
+    - all
+    - default
+    - eth0
+    - "{{ wireguard_client_interface }}"
+    - "{{ wireguard_server_interface }}"
+  when: item in ['all', 'default'] or item in ansible_facts['interfaces']
 
 
 - name: Install Wireguard Binary
