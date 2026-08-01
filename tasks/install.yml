@@ -39,12 +39,10 @@
     state: present
     sysctl_file: /etc/sysctl.d/99-mkrasberry.conf
   loop:
-    - all
-    - default
-    - eth0
-    - "{{ wireguard_client_interface }}"
-    - "{{ wireguard_server_interface }}"
-  when: item in ['all', 'default'] or item in ansible_facts.get('interfaces', [])
+    "{{ ['all', 'default', wireguard_source_routing_lan_interface, wireguard_client_interface, wireguard_server_interface] | unique | list }}"
+  when:
+    - wireguard_source_routing_enabled | bool
+    - item in ['all', 'default'] or item in ansible_facts.get('interfaces', [])
 
 
 - name: Install Wireguard Binary
@@ -91,6 +89,7 @@
   assert:
     that:
       - wireguard_source_routing_gateway is defined
+      - wireguard_source_routing_gateway | length > 0
       - wireguard_source_routing_remote_subnets | length > 0
     fail_msg: "wireguard_source_routing_enabled requires wireguard_source_routing_gateway and wireguard_source_routing_remote_subnets"
   when: wireguard_source_routing_enabled | bool
