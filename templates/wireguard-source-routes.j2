@@ -9,6 +9,7 @@ PRIORITY="{{ wireguard_source_routing_priority }}"
 LAN_INTERFACE="{{ wireguard_source_routing_lan_interface }}"
 GATEWAY="{{ wireguard_source_routing_gateway }}"
 STATE_DIR="/run/wireguard-source-routes/table-${TABLE}"
+STATE_FILE="${STATE_DIR}/${WG_INTERFACE}"
 
 REMOTE_SUBNETS="
 {% for subnet in wireguard_source_routing_remote_subnets %}
@@ -56,6 +57,14 @@ add_rule() {
   fi
 }
 
+current_rules() {
+  index=0
+  for subnet in $REMOTE_SUBNETS; do
+    echo "$((PRIORITY + index)) $subnet"
+    index="$((index + 1))"
+  done
+}
+
 delete_rule() {
   subnet="$1"
   priority="$2"
@@ -76,26 +85,32 @@ case "$ACTION" in
     mkdir -p "$STATE_DIR"
     ip -4 route replace default via "$GATEWAY" dev "$LAN_INTERFACE" src "$SRC_IP" table "$TABLE"
 
-    index=0
-    for subnet in $REMOTE_SUBNETS; do
-      add_rule "$subnet" "$((PRIORITY + index))"
-      index="$((index + 1))"
+    current_rules | while read -r priority subnet; do
+      add_rule "$subnet" "$priority"
     done
 
-    touch "${STATE_DIR}/${WG_INTERFACE}"
+    current_rules > "$STATE_FILE"
     ;;
   down)
-    rm -f "${STATE_DIR}/${WG_INTERFACE}"
+    rules_file="$(mktemp)"
+    if [ -f "$STATE_FILE" ]; then
+      cp "$STATE_FILE" "$rules_file"
+    else
+      current_rules > "$rules_file"
+    fi
+
+    rm -f "$STATE_FILE"
     if find "$STATE_DIR" -type f -print -quit 2>/dev/null | grep -q .; then
       ip -4 route flush cache 2>/dev/null || true
+      rm -f "$rules_file"
       exit 0
     fi
 
-    index=0
-    for subnet in $REMOTE_SUBNETS; do
-      delete_rule "$subnet" "$((PRIORITY + index))"
-      index="$((index + 1))"
-    done
+    while read -r priority subnet; do
+      delete_rule "$subnet" "$priority"
+    done < "$rules_file"
+
+    rm -f "$rules_file"
 
     ip -4 route delete default via "$GATEWAY" dev "$LAN_INTERFACE" table "$TABLE" 2>/dev/null || true
     ;;
