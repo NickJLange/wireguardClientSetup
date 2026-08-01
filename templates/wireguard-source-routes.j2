@@ -8,14 +8,16 @@ TABLE="{{ wireguard_source_routing_table }}"
 PRIORITY="{{ wireguard_source_routing_priority }}"
 LAN_INTERFACE="{{ wireguard_source_routing_lan_interface }}"
 GATEWAY="{{ wireguard_source_routing_gateway }}"
-STATE_DIR="/run/wireguard-source-routes/table-${TABLE}"
+STATE_ROOT="/run/wireguard-source-routes"
+STATE_DIR="${STATE_ROOT}/table-${TABLE}"
 STATE_FILE="${STATE_DIR}/${WG_INTERFACE}"
 
-REMOTE_SUBNETS="
+REMOTE_SUBNETS="$(cat <<'EOF'
 {% for subnet in wireguard_source_routing_remote_subnets %}
 {{ subnet }}
 {% endfor %}
-"
+EOF
+)"
 
 if [ "$ACTION" != "up" ] && [ "$ACTION" != "down" ]; then
   echo "usage: $0 up|down <wireguard-interface>" >&2
@@ -41,26 +43,28 @@ lan_source_ip() {
 rule_exists() {
   subnet="$1"
   priority="$2"
+  table="$3"
   ip -4 rule show | awk \
     -v priority="${priority}:" \
     -v subnet="$subnet" \
-    -v table="$TABLE" \
+    -v table="$table" \
     '$1 == priority && $2 == "from" && $3 == subnet && $(NF - 1) == "lookup" && $NF == table { found = 1 } END { exit !found }'
 }
 
 add_rule() {
   subnet="$1"
   priority="$2"
+  table="$3"
 
-  if ! rule_exists "$subnet" "$priority"; then
-    ip -4 rule add priority "$priority" from "$subnet" table "$TABLE"
+  if ! rule_exists "$subnet" "$priority" "$table"; then
+    ip -4 rule add priority "$priority" from "$subnet" table "$table"
   fi
 }
 
 current_rules() {
   index=0
   for subnet in $REMOTE_SUBNETS; do
-    echo "$((PRIORITY + index)) $subnet"
+    echo "$TABLE $((PRIORITY + index)) $subnet $GATEWAY $LAN_INTERFACE"
     index="$((index + 1))"
   done
 }
@@ -68,14 +72,30 @@ current_rules() {
 delete_rule() {
   subnet="$1"
   priority="$2"
+  table="$3"
 
-  while rule_exists "$subnet" "$priority"; do
-    ip -4 rule delete priority "$priority" from "$subnet" table "$TABLE"
+  while rule_exists "$subnet" "$priority" "$table"; do
+    ip -4 rule delete priority "$priority" from "$subnet" table "$table"
   done
+}
+
+rollback_up() {
+  current_rules | while read -r table priority subnet gateway lan_interface; do
+    delete_rule "$subnet" "$priority" "$table"
+    ip -4 route delete default via "$gateway" dev "$lan_interface" table "$table" 2>/dev/null || true
+  done
+  rm -f "$STATE_FILE"
+  ip -4 route flush cache 2>/dev/null || true
+}
+
+any_active_state() {
+  [ -d "$STATE_ROOT" ] && find "$STATE_ROOT" -type f -print -quit 2>/dev/null | grep -q .
 }
 
 case "$ACTION" in
   up)
+    trap rollback_up EXIT HUP INT TERM
+
     SRC_IP="$(lan_source_ip)"
     if [ -z "$SRC_IP" ]; then
       echo "could not determine IPv4 source address for ${LAN_INTERFACE}" >&2
@@ -85,34 +105,39 @@ case "$ACTION" in
     mkdir -p "$STATE_DIR"
     ip -4 route replace default via "$GATEWAY" dev "$LAN_INTERFACE" src "$SRC_IP" table "$TABLE"
 
-    current_rules | while read -r priority subnet; do
-      add_rule "$subnet" "$priority"
+    current_rules | while read -r table priority subnet gateway lan_interface; do
+      add_rule "$subnet" "$priority" "$table"
     done
 
     current_rules > "$STATE_FILE"
+    trap - EXIT HUP INT TERM
     ;;
   down)
     rules_file="$(mktemp)"
-    if [ -f "$STATE_FILE" ]; then
-      cp "$STATE_FILE" "$rules_file"
-    else
+
+    if [ -d "$STATE_ROOT" ]; then
+      find "$STATE_ROOT" -type f -name "$WG_INTERFACE" -print 2>/dev/null | while read -r state_file; do
+        cat "$state_file" >> "$rules_file"
+        rm -f "$state_file"
+      done
+    fi
+
+    if [ ! -s "$rules_file" ]; then
       current_rules > "$rules_file"
     fi
 
-    rm -f "$STATE_FILE"
-    if find "$STATE_DIR" -type f -print -quit 2>/dev/null | grep -q .; then
+    if any_active_state; then
       ip -4 route flush cache 2>/dev/null || true
       rm -f "$rules_file"
       exit 0
     fi
 
-    while read -r priority subnet; do
-      delete_rule "$subnet" "$priority"
+    while read -r table priority subnet gateway lan_interface; do
+      delete_rule "$subnet" "$priority" "$table"
+      ip -4 route delete default via "$gateway" dev "$lan_interface" table "$table" 2>/dev/null || true
     done < "$rules_file"
 
     rm -f "$rules_file"
-
-    ip -4 route delete default via "$GATEWAY" dev "$LAN_INTERFACE" table "$TABLE" 2>/dev/null || true
     ;;
 esac
 
