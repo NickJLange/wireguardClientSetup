@@ -9,10 +9,14 @@ PostDown = {{ wireguard_source_routing_script }} down %i
 {% if 'japan' in group_names %}
 PostUp = iptables -A FORWARD -i %i -j ACCEPT
 PostDown = iptables -D FORWARD -i %i -j ACCEPT
-{% if not (wireguard_source_routing_enabled | bool) %}
+{% if wireguard_source_routing_enabled | bool %}
+{% for subnet in wireguard_source_routing_remote_subnets %}
+PostUp = iptables -t nat -I POSTROUTING -s {{ subnet }} -o eth0 -j RETURN
+PostDown = iptables -t nat -D POSTROUTING -s {{ subnet }} -o eth0 -j RETURN
+{% endfor %}
+{% endif %}
 PostUp = iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
 PostDown = iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
-{% endif %}
 {% endif %}
 {% if 'newyork' in group_names %}
 DNS = {{ wireguard_client_dns }}
