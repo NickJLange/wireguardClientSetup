@@ -6,9 +6,13 @@ PrivateKey = {{ wireguard_client_private_key }}
 PostUp = {{ wireguard_source_routing_script }} up %i
 PostDown = {{ wireguard_source_routing_script }} down %i
 {% endif %}
-{% if 'japan' in group_names and not (wireguard_source_routing_enabled | bool) %}
-PostUp = iptables -A FORWARD -i %i -j ACCEPT; iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
-PostDown = iptables -D FORWARD -i %i -j ACCEPT; iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
+{% if 'japan' in group_names %}
+PostUp = iptables -A FORWARD -i %i -j ACCEPT
+PostDown = iptables -D FORWARD -i %i -j ACCEPT
+{% if not (wireguard_source_routing_enabled | bool) %}
+PostUp = iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+PostDown = iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
+{% endif %}
 {% endif %}
 {% if 'newyork' in group_names %}
 DNS = {{ wireguard_client_dns }}

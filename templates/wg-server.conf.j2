@@ -5,13 +5,14 @@ PrivateKey = {{ wireguard_server_private_key }}
 {% if wireguard_source_routing_enabled | bool %}
 PostUp = {{ wireguard_source_routing_script }} up %i
 PostDown = {{ wireguard_source_routing_script }} down %i
-{% endif %}
+{% else %}
 PostUp = ip rule add table 200 from 192.168.100.106
 PostUp = ip route add table 200 default via 192.168.100.1
 PostUp = iptables -t nat -I POSTROUTING -o eth0 -j MASQUERADE
 PreDown = iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
 PreDown = ip rule delete table 200 from 192.168.100.106
 PreDown = ip route delete table 200 default via 192.168.100.1
+{% endif %}
 
 {% for ip, pubkey in wireguard_server_clients.items() %}
 {% if 'Key' not in ip %}

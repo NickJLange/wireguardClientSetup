@@ -2,7 +2,7 @@
 
 
 - import_tasks: install.yml
-  when: provision_wg_client or provision_wg_server
+  when: provision_wg_client or provision_wg_server or refresh_wg_server
   tags: [wireguard_install_binary]
 
 - command: "wg --help"
