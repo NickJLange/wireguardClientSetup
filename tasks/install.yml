@@ -44,7 +44,7 @@
     - eth0
     - "{{ wireguard_client_interface }}"
     - "{{ wireguard_server_interface }}"
-  when: item in ['all', 'default'] or item in ansible_facts['interfaces']
+  when: item in ['all', 'default'] or item in ansible_facts.get('interfaces', [])
 
 
 - name: Install Wireguard Binary

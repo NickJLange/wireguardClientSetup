@@ -6,7 +6,7 @@
 - name: "Check if there is an existing Private/Public Key for Server"
   hashivault_read:
     mount_point: "/kv/wireguard-client"
-    secret: "{{ vault_wireguard_key }}"
+    secret: "{{ vault_key }}"
     version: 2
   register: wg_client_ip_keys
   ignore_errors: yes

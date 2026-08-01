@@ -5,7 +5,7 @@
         vault_key: "{{ wireguard_client_server_endpoint.split(':')[0]}}"
     - name: Fetch Wireguard Client Pub Keys
       hashivault_read:
-        secret: "{{ vault_wireguard_key }}"
+        secret: "{{ vault_key }}"
         mount_point: "kv/wireguard-server"
         version: 2
       register: wgrawsecret
