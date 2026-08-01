@@ -24,8 +24,8 @@ When enabled, the role installs `/usr/local/sbin/wireguard-source-routes` and
 adds `wg-quick` hooks:
 
 ```ini
-PostUp = /usr/local/sbin/wireguard-source-routes up %i
-PostDown = /usr/local/sbin/wireguard-source-routes down %i
+PostUp = /usr/local/sbin/wireguard-source-routes up
+PostDown = /usr/local/sbin/wireguard-source-routes down
 ```
 
 The helper writes only to the configured policy table, defaulting to table
