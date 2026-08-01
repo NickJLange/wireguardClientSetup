@@ -1,0 +1,81 @@
+#!/bin/sh
+set -eu
+
+ACTION="${1:-}"
+
+TABLE="{{ wireguard_source_routing_table }}"
+PRIORITY="{{ wireguard_source_routing_priority }}"
+LAN_INTERFACE="{{ wireguard_source_routing_lan_interface }}"
+GATEWAY="{{ wireguard_source_routing_gateway }}"
+
+REMOTE_SUBNETS="$(cat <<'EOF'
+{% for subnet in wireguard_source_routing_remote_subnets %}
+{{ subnet }}
+{% endfor %}
+EOF
+)"
+
+lan_source_ip() {
+  ip -4 -o addr show dev "$LAN_INTERFACE" scope global | awk 'NR == 1 { split($4, addr, "/"); print addr[1] }'
+}
+
+rule_exists() {
+  subnet="$1"
+  priority="$2"
+  ip -4 rule show | awk \
+    -v priority="${priority}:" \
+    -v subnet="$subnet" \
+    -v table="$TABLE" \
+    '$1 == priority && $2 == "from" && $3 == subnet && $(NF - 1) == "lookup" && $NF == table { found = 1 } END { exit !found }'
+}
+
+add_rule() {
+  subnet="$1"
+  priority="$2"
+
+  if ! rule_exists "$subnet" "$priority"; then
+    ip -4 rule add priority "$priority" from "$subnet" table "$TABLE"
+  fi
+}
+
+delete_rule() {
+  subnet="$1"
+  priority="$2"
+
+  while rule_exists "$subnet" "$priority"; do
+    ip -4 rule delete priority "$priority" from "$subnet" table "$TABLE"
+  done
+}
+
+case "$ACTION" in
+  up)
+    SRC_IP="$(lan_source_ip)"
+    if [ -z "$SRC_IP" ]; then
+      echo "could not determine IPv4 source address for ${LAN_INTERFACE}" >&2
+      exit 1
+    fi
+
+    ip -4 route replace default via "$GATEWAY" dev "$LAN_INTERFACE" src "$SRC_IP" table "$TABLE"
+
+    index=0
+    for subnet in $REMOTE_SUBNETS; do
+      add_rule "$subnet" "$((PRIORITY + index))"
+      index="$((index + 1))"
+    done
+    ;;
+  down)
+    index=0
+    for subnet in $REMOTE_SUBNETS; do
+      delete_rule "$subnet" "$((PRIORITY + index))"
+      index="$((index + 1))"
+    done
+
+    ip -4 route delete default via "$GATEWAY" dev "$LAN_INTERFACE" table "$TABLE" 2>/dev/null || true
+    ;;
+  *)
+    echo "usage: $0 up|down" >&2
+    exit 64
+    ;;
+esac
+
+ip -4 route flush cache 2>/dev/null || true

@@ -20,14 +20,29 @@
     name: net.ipv4.ip_forward
     value: 1
     state: present
+    sysctl_file: /etc/sysctl.d/99-mkrasberry.conf
 - sysctl:
     name: net.core.default_qdisc
     value: fq
     state: present
+    sysctl_file: /etc/sysctl.d/99-mkrasberry.conf
 - sysctl:
     name: net.ipv4.tcp_congestion_control
     value: bbr
     state: present
+    sysctl_file: /etc/sysctl.d/99-mkrasberry.conf
+
+- name: Disable reverse-path filtering for WireGuard routing interfaces
+  sysctl:
+    name: "net.ipv4.conf.{{ item }}.rp_filter"
+    value: 0
+    state: present
+    sysctl_file: /etc/sysctl.d/99-mkrasberry.conf
+  loop:
+    "{{ ['all', 'default', wireguard_source_routing_lan_interface, wireguard_client_interface, wireguard_server_interface] | unique | list }}"
+  when:
+    - wireguard_source_routing_enabled | bool
+    - item in ['all', 'default'] or item in ansible_facts.get('interfaces', [])
 
 
 - name: Install Wireguard Binary
@@ -68,4 +83,29 @@
 
   when:
     wg_bin.stat.exists == False or force_install is defined
+  tags: wireguard_install_binary
+
+- name: Validate WireGuard source routing settings
+  assert:
+    that:
+      - wireguard_source_routing_gateway is defined
+      - wireguard_source_routing_gateway | length > 0
+      - wireguard_source_routing_gateway is match('^((25[0-5]|2[0-4][0-9]|1?[0-9]?[0-9])\\.){3}(25[0-5]|2[0-4][0-9]|1?[0-9]?[0-9])$')
+      - wireguard_source_routing_lan_interface is match('^[A-Za-z0-9_.:-]+$')
+      - wireguard_source_routing_table | string is match('^(0|[1-9][0-9]*)$')
+      - wireguard_source_routing_priority | string is match('^(0|[1-9][0-9]*)$')
+      - wireguard_source_routing_remote_subnets | length > 0
+      - wireguard_source_routing_remote_subnets | select('match', '^((25[0-5]|2[0-4][0-9]|1?[0-9]?[0-9])\\.){3}(25[0-5]|2[0-4][0-9]|1?[0-9]?[0-9])/([0-9]|[12][0-9]|3[0-2])$') | list | length == wireguard_source_routing_remote_subnets | length
+    fail_msg: "wireguard_source_routing_enabled requires wireguard_source_routing_gateway and wireguard_source_routing_remote_subnets"
+  when: wireguard_source_routing_enabled | bool
+  tags: wireguard_install_binary
+
+- name: Install WireGuard source routing helper
+  template:
+    src: wireguard-source-routes.j2
+    dest: "{{ wireguard_source_routing_script }}"
+    owner: root
+    group: root
+    mode: "0755"
+  when: wireguard_source_routing_enabled | bool
   tags: wireguard_install_binary
