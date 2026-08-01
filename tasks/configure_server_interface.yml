@@ -6,7 +6,7 @@
     - name: Fetch Wireguard Client Pub Keys
       hashivault_read:
         secret: "{{ vault_key }}"
-        mount_point: "kv/wireguard-server"
+        mount_point: 'kv/wireguard-server'
         version: 2
       register: wgrawsecret
       delegate_to: localhost
@@ -17,17 +17,12 @@
       set_fact:
         wireguard_server_clients: "{{wgrawsecret.value}}"
         wireguard_server_private_key: "{{wgrawsecret.value.PrivateKey}}"
-        wireguard_ip_map:
-          {
-            "10.253.10.150/32": "192.168.3.0/24",
-            "10.253.10.151/32": "192.168.3.101/32",
-            "10.253.10.152/32": "192.168.3.102/32",
-            "10.253.10.100/32": "192.168.20.0/24",
-          }
+        wireguard_ip_map: {"10.253.10.150/32":"192.168.3.0/24","10.253.10.151/32":"192.168.3.101/32","10.253.10.152/32":"192.168.3.102/32","10.253.10.100/32":"192.168.20.0/24"}
 
     - debug: msg="Known secrets are {{ wgrawsecret.value }}"
     - debug: msg="PrivateKey {{ wireguard_server_private_key }}"
     - debug: msg="Known secrets are {{ wireguard_server_clients }}"
+
 
     ### FIXME: Needs cleanup
     - name: Generate WireGuard configuration file
@@ -59,6 +54,6 @@
       service:
         name: "wg-quick@{{ wireguard_interface }}"
         state: started
-  #        enabled: yes
+#        enabled: yes
 
   tags: wireguard_configure_server

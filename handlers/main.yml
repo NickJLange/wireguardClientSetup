@@ -6,7 +6,7 @@
   loop:
   - stopped
   - started
-  when: not wg_syncconf or (wireguard_source_routing_enabled | bool)
+  when: not wg_syncconf
   listen: "reconfigure wireguard"
 
 - name: syncconf wireguard
@@ -19,5 +19,5 @@
       exit 0
   args:
     executable: "/bin/bash"
-  when: wg_syncconf and not (wireguard_source_routing_enabled | bool)
+  when: wg_syncconf
   listen: "reconfigure wireguard"

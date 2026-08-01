@@ -1,11 +1,12 @@
 ---
+
 ## Workflow - store content inside the client section for $hostlist
 - set_fact:
     vault_key: "{{ wireguard_client_ip.split('/')[0]}}"
 
 - name: "Check if there is an existing Private/Public Key for Server"
   hashivault_read:
-    mount_point: "/kv/wireguard-client"
+    mount_point: '/kv/wireguard-client'
     secret: "{{ vault_key }}"
     version: 2
   register: wg_client_ip_keys
@@ -23,10 +24,15 @@
   debug:
     msg: "{{ wg_client_ip_keys.rc }}"
 
+
 - name: Generate Private/Public Keys for host (and store in vault)
   block:
-    #$ip/private_key
-    #$ip/public_key
+
+#$ip/private_key
+#$ip/public_key
+
+
+
 
     - name: Generate WireGuard private key
       command: "wg genkey"
@@ -36,6 +42,7 @@
     - name: Set private key fact
       set_fact:
         wireguard_client_private_key: "{{ wg_private_key_result.stdout }}"
+
 
     - name: Derive WireGuard public key
       shell: "echo '{{ wireguard_client_private_key }}' | wg pubkey" # noqa 306
@@ -53,7 +60,7 @@
 
     - name: "Add keys to vault"
       hashivault_write:
-        mount_point: "/kv/wireguard-client"
+        mount_point: '/kv/wireguard-client'
         secret: "{{ vault_key }}"
         version: 2
         data:
@@ -64,11 +71,12 @@
       delegate_to: localhost
       become: false
       become_user: "{{ local_ssh_user }}"
-    #      ignore_errors: yes
+#      ignore_errors: yes
 
-    #    - name: Pause for station identification
-    #      pause:
-    #        prompt: "Please put {{ wireguard_client_public_key }} on the home base config"
+
+#    - name: Pause for station identification
+#      pause:
+#        prompt: "Please put {{ wireguard_client_public_key }} on the home base config"
 
     - name: "Storing Public Key in {{wireguard_client_public_key_file}}"
       shell: echo "{{wireguard_client_public_key}}" > "{{ wireguard_remote_directory }}/{{wireguard_client_public_key_file}}"
