@@ -2,7 +2,11 @@
 Address = {{ wireguard_client_ip }}
 ListenPort = {{ wireguard_client_listen_port }}
 PrivateKey = {{ wireguard_client_private_key }}
-{% if 'japan' in group_names %}
+{% if wireguard_source_routing_enabled | bool %}
+PostUp = {{ wireguard_source_routing_script }} up %i
+PostDown = {{ wireguard_source_routing_script }} down %i
+{% endif %}
+{% if 'japan' in group_names and not (wireguard_source_routing_enabled | bool) %}
 PostUp = iptables -A FORWARD -i %i -j ACCEPT; iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
 PostDown = iptables -D FORWARD -i %i -j ACCEPT; iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
 {% endif %}

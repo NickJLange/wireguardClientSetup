@@ -31,3 +31,12 @@ refresh_wg_server: false
 provision_wg_server: False
 provision_wg_client: False
 add_wg_client: False
+
+# Enables source-policy routing for WireGuard site gateways. Keep disabled for
+# ordinary clients; gateway hosts opt in with their local router and routed LANs.
+wireguard_source_routing_enabled: false
+wireguard_source_routing_script: "/usr/local/sbin/wireguard-source-routes"
+wireguard_source_routing_table: 100
+wireguard_source_routing_priority: 1000
+wireguard_source_routing_lan_interface: "eth0"
+wireguard_source_routing_remote_subnets: []

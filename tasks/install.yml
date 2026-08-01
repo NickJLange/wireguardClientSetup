@@ -86,3 +86,22 @@
   when:
     wg_bin.stat.exists == False or force_install is defined
   tags: wireguard_install_binary
+
+- name: Validate WireGuard source routing settings
+  assert:
+    that:
+      - wireguard_source_routing_gateway is defined
+      - wireguard_source_routing_remote_subnets | length > 0
+    fail_msg: "wireguard_source_routing_enabled requires wireguard_source_routing_gateway and wireguard_source_routing_remote_subnets"
+  when: wireguard_source_routing_enabled | bool
+  tags: wireguard_install_binary
+
+- name: Install WireGuard source routing helper
+  template:
+    src: wireguard-source-routes.j2
+    dest: "{{ wireguard_source_routing_script }}"
+    owner: root
+    group: root
+    mode: "0755"
+  when: wireguard_source_routing_enabled | bool
+  tags: wireguard_install_binary
